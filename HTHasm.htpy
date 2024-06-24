@@ -1,0 +1,137 @@
+
+ExtractFileNameWithoutExtension(path)
+{
+
+if (InStr(path, Chr(47)))
+{
+Loop, Parse, path, "/"
+{
+lastFileName := A_LoopField
+}
+StringTrimRight, lastFileName, lastFileName, 7
+}
+
+if (InStr(path, Chr(92)))
+{
+Loop, Parse, path, Chr(92)
+{
+lastFileName := A_LoopField
+}
+StringTrimRight, lastFileName, lastFileName, 7
+}
+
+return lastFileName
+}
+
+compiler()
+{
+
+params := GetParams()
+Loop, Parse, params, `n, `r
+{
+if (A_Index = 1)
+{
+;MsgBox, % A_LoopField
+filePathOfCode := A_LoopField
+HTHasmCode := FileRead(filePathOfCode)
+}
+if (A_Index = 2)
+{
+MsgBox, % A_LoopField
+}
+}
+
+HTHasmCode := StrReplace(HTHasmCode, Chr(13), "")
+HTHasmCodeOUTtrim := ""
+Loop, Parse, HTHasmCode, `n, `r
+{
+HTHasmCodeOUTtrim .= Trim(A_LoopField) . "`n"
+}
+StringTrimRight, HTHasmCode, HTHasmCodeOUTtrim, 1
+
+outCode := ""
+
+Loop, Parse, HTHasmCode, `n, `r
+{
+if (SubStr(StrLower(A_LoopField), 1, 8) = "msgbox, ")
+{
+
+StringTrimLeft, str1, A_LoopField, 8
+
+outCode .= str1 . "`n"
+
+}
+
+}
+StringTrimRight, outCode, outCode, 1
+
+outCodeLast := ""
+Loop, Parse, outCode, `n, `r
+{
+if (A_LoopField != "")
+{
+outCodeLast .= A_LoopField . "`n"
+}
+}
+
+StringTrimRight, outCode, outCodeLast, 1
+
+upToMidCode := ""
+midToDownCode := ""
+
+Loop, Parse, outCode, `n, `r
+{
+
+upToMidCode .= "`n    text" . str(A_Index) . " db '" . A_LoopField . "', 10`n    len" . str(A_Index) . " equ $ - text" . str(A_Index) . "`n"
+midToDownCode .= "    mov edx, len" . str(A_Index) . "`n    mov ecx, text" . str(A_Index) . "`n    mov ebx, 1`n    mov eax, 4`n    int 0x80`n"
+
+}
+
+
+upCode := "section .data`n"
+; here we put the text1 2 3 ...
+midCode := "`nsection .text`n    global _start`n`n_start:`n"
+
+downCode := "`n    ; exit program`n    mov eax, 1`n    xor ebx, ebx`n    int 0x80`n"
+
+allCode := upCode . upToMidCode . "`n" . midCode . "`n" . midToDownCode . "`n" . downCode
+
+
+return allCode
+}
+
+
+ASMcodeOut := compiler()
+
+
+
+fullPath := filePathOfCode
+filePathOfCode := ExtractFileNameWithoutExtension(filePathOfCode)
+filePathOfCodeNAME := filePathOfCode
+filePathOfCode := filePathOfCode . ".asm"
+FileAppend, %ASMcodeOut%, %filePathOfCode%
+
+
+
+
+; Define the name of the .numbers file
+asmfile := filePathOfCodeNAME . ".asm"
+outputfile := filePathOfCodeNAME
+
+
+; Assemble the assembly code using NASM
+RunCMD("nasm -f elf " + variables['asmfile'] + " -o temp.o")
+
+; Link the object file and generate the executable using ld
+RunCMD("ld -m elf_i386 temp.o -o " + variables['outputfile'])
+
+; Clean up temporary files
+RunCMD("rm temp.o")
+
+; Optionally clean up the generated .asm file
+RunCMD("rm " + variables['asmfile'])
+
+; Notify the user that the executable is ready
+MsgBox, Compiled!
+MsgBox, % "to run your code type: ./" . filePathOfCodeNAME
+
