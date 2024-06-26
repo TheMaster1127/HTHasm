@@ -214,13 +214,13 @@ FileAppend("" + variables['ASMcodeOut'] + "", "" + variables['filePathOfCode'] +
 variables['asmfile'] = variables['filePathOfCodeNAME']  +  ".asm"
 variables['outputfile'] = variables['filePathOfCodeNAME']
 # Assemble the assembly code using NASM
-RunCMD("nasm -f elf " + variables['asmfile'] + " -o temp.o")
+RunCMD( "nasm -f elf "  +  variables['asmfile']  +  " -o temp.o")
 # Link the object file and generate the executable using ld
-RunCMD("ld -m elf_i386 temp.o -o " + variables['outputfile'])
+RunCMD( "ld -m elf_i386 temp.o -o "  +  variables['outputfile'])
 # Clean up temporary files
-RunCMD("rm temp.o")
+RunCMD( "rm temp.o")
 # Optionally clean up the generated .asm file
-RunCMD("rm " + variables['asmfile'])
+RunCMD( "rm "  +  variables['asmfile'])
 # Notify the user that the executable is ready
 print("Compiled!")
 print("to run your code type: ./"  +  variables['filePathOfCodeNAME'])
